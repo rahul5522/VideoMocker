@@ -1,11 +1,17 @@
-import VideoGeneratorForm from '../components/VideoGeneratorForm'
+import VideoGeneratorForm from "../components/videoGeneratorForm";
+import { ThemeToggle } from "../components/themeToggle";
 
 const Home = () => {
   return (
-    <div>
+    <>
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      <div>
         <VideoGeneratorForm />
-    </div>
-  )
-}
+      </div>
+    </>
+  );
+};
 
-export default Home
+export default Home;

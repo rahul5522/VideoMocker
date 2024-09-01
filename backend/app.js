@@ -9,7 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the 'public' directory
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.post('/api/generate-video', (req, res) => {
@@ -19,17 +18,14 @@ app.post('/api/generate-video', (req, res) => {
   const publicDir = path.join(__dirname, 'public');
   const outputPath = path.join(publicDir, outputFileName);
 
-  // Ensure the public directory exists
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
 
-  console.log(`Generating video: ${width}x${height}, ${duration}s, ${format}`);
-
   const ffmpeg = spawn('ffmpeg', [
     '-f', 'lavfi',
     '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
-    '-vf', `drawtext=fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='Placeholder Video'`,
+    '-vf', `drawtext=fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width} x ${height} PX'`,
     '-t', duration,
     outputPath
   ]);
