@@ -14,6 +14,8 @@ app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.post('/api/generate-video', async (req, res) => {
+  console.log("API hit");
+  
   const { width, height, duration, format } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
   const publicDir = path.join(__dirname, 'public');
@@ -26,43 +28,47 @@ app.post('/api/generate-video', async (req, res) => {
     return res.status(500).json({ error: 'Failed to create public directory' });
   }
 
-  const ffmpeg = spawn('ffmpeg', [
-   '-f', 'lavfi',
-   '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
-   '-f', 'lavfi',
-   '-i', `sine=frequency=440:duration=${duration}`,
-   '-vf', `drawtext=fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width} x ${height} PX'`,
-   '-t', duration,
-   '-shortest',
-   '-metadata', `comment=${moment().add(1, 'h').toISOString()}`,
-   outputPath
-]);
-
-  let ffmpegLogs = '';
-
-  ffmpeg.stdout.on('data', (data) => {
-    console.log(`FFmpeg stdout: ${data}`);
-    ffmpegLogs += data;
-  });
-
-  ffmpeg.stderr.on('data', (data) => {
-    console.error(`FFmpeg stderr: ${data}`);
-    ffmpegLogs += data;
-  });
-
-  ffmpeg.on('close', (code) => {
-    console.log(`FFmpeg process closed with code ${code}`);
-    if (code === 0) {
-      res.json({ videoUrl: `/public/${outputFileName}` });
-    } else {
-      console.error('FFmpeg logs:', ffmpegLogs);
-      res.status(500).json({ 
-        error: 'Error generating video', 
-        logs: ffmpegLogs,
-        details: `Failed to create file: ${outputPath}. Please check directory permissions and FFmpeg installation.`
-      });
-    }
-  });
+  try{
+    const ffmpeg = spawn('ffmpeg', [
+     '-f', 'lavfi',
+     '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
+     '-f', 'lavfi',
+     '-i', `sine=frequency=440:duration=${duration}`,
+     '-vf', `drawtext=fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width} x ${height} PX'`,
+     '-t', duration,
+     '-shortest',
+     '-metadata', `comment=${moment().add(1, 'h').toISOString()}`,
+     outputPath
+  ]);
+  
+    let ffmpegLogs = '';
+  
+    ffmpeg.stdout.on('data', (data) => {
+      console.log(`FFmpeg stdout: ${data}`);
+      ffmpegLogs += data;
+    });
+  
+    ffmpeg.stderr.on('data', (data) => {
+      console.error(`FFmpeg stderr: ${data}`);
+      ffmpegLogs += data;
+    });
+  
+    ffmpeg.on('close', (code) => {
+      console.log(`FFmpeg process closed with code ${code}`);
+      if (code === 0) {
+        res.json({ videoUrl: `/public/${outputFileName}` });
+      } else {
+        console.error('FFmpeg logs:', ffmpegLogs);
+        res.status(500).json({ 
+          error: 'Error generating video', 
+          logs: ffmpegLogs,
+          details: `Failed to create file: ${outputPath}. Please check directory permissions and FFmpeg installation.`
+        });
+      }
+    });
+  } catch(err) {
+    console.log("Error occurred", err);
+  }
 });
 
 // Cron job to delete expired videos
