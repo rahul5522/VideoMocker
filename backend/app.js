@@ -71,6 +71,8 @@ cron.schedule('*/5 * * * *', async () => {  // Runs every hour
   const publicDir = path.join(__dirname, 'public');
   
   try {
+    await fs.mkdir(publicDir, { recursive: true });
+
     const files = await fs.readdir(publicDir);
     for (const file of files) {
       const filePath = path.join(publicDir, file);
