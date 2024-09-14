@@ -41,7 +41,7 @@ const VideoGeneratorForm = () => {
     { label: "720p (1280x720)", value: "1280x720" },
     { label: "1080p (1920x1080)", value: "1920x1080" },
     { label: "1440p (2560x1440)", value: "2560x1440" },
-    { label: "4K (3840x2160)", value: "3840x2160" },
+    // { label: "4K (3840x2160)", value: "3840x2160" },
   ];
 
   const videoFormats = [
@@ -208,7 +208,7 @@ const VideoGeneratorForm = () => {
             <div className="mt-4 space-y-4">
               {renderVideo()}
               <Button asChild className="w-full">
-                <a href={videoUrl} download>
+                <a href={videoUrl} target="_blank" download>
                   Download Video
                 </a>
               </Button>
