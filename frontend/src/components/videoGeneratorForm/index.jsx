@@ -179,7 +179,7 @@ const VideoGeneratorForm = () => {
           controls
           className="w-full rounded-lg shadow-lg"
         >
-          Your browser does not support the video tag.
+          Your browser does not support the video tag. Please download the video.
         </video>
       );
     }
