@@ -15,6 +15,9 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get("/", async(req, res) => {
   console.log("Working");
+  res.status(200).json({
+    msg: "Working properly",
+  })
 });
 
 app.post('/api/generate-video', async (req, res) => {
