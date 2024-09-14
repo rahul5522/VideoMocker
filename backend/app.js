@@ -60,7 +60,8 @@ app.post('/api/generate-video', async (req, res) => {
     ];
 
     if (audioEnabled) {
-      ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k');
+      // ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k');
+      ffmpegArgs.push('-c:a', 'libmp3lame', '-b:a', '192k');
     }
 
     ffmpegArgs.push(outputPath);
