@@ -4,7 +4,6 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs').promises;
 const cron = require('node-cron');
-const moment = require('moment');
 
 const app = express();
 
@@ -23,7 +22,7 @@ app.get("/", async(req, res) => {
 app.post('/api/generate-video', async (req, res) => {
   console.log("API hit");
   
-  const { width, height, duration, format, audioEnabled = true } = req.body;
+  const { width, height, duration, format, audioEnabled } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
   const outputPath = path.join('/tmp', outputFileName);
 
@@ -42,7 +41,18 @@ app.post('/api/generate-video', async (req, res) => {
       '-y',  // Overwrite output file if it exists
       '-f', 'lavfi',
       '-i', `color=c=blue:s=${width}x${height}:d=${duration}`,
-      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`,
+      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`
+    ];
+
+    if (audioEnabled) {
+      // Add audio input
+      ffmpegArgs.push('-f', 'lavfi', '-i', `sine=frequency=1000:duration=${duration}`);
+      // Map both video and audio to output
+      ffmpegArgs.push('-map', '0:v', '-map', '1:a');
+    }
+
+    ffmpegArgs = [
+      ...ffmpegArgs,
       '-t', duration,
       '-c:v', 'libx264',
       '-preset', 'ultrafast',
@@ -50,14 +60,7 @@ app.post('/api/generate-video', async (req, res) => {
     ];
 
     if (audioEnabled) {
-      // Generate a sine wave audio
-      ffmpegArgs = [
-        ...ffmpegArgs,
-        '-f', 'lavfi',
-        '-i', `sine=frequency=1000:duration=${duration}`,
-        '-c:a', 'aac',
-        '-b:a', '192k'
-      ];
+      ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k');
     }
 
     ffmpegArgs.push(outputPath);
