@@ -25,17 +25,20 @@ app.post('/api/generate-video', async (req, res) => {
   
   const { width, height, duration, format } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
-  const publicDir = '/tmp';
-  const outputPath = path.join(publicDir, outputFileName);
+  const outputPath = path.join('/tmp', outputFileName);
+
+  console.log(`Attempting to generate video: ${outputPath}`);
 
   try {
-    await fs.mkdir(publicDir, { recursive: true });
+    // Check if /tmp directory exists and is writable
+    await fs.access('/tmp', fs.constants.W_OK);
+    console.log('/tmp directory is writable');
   } catch (err) {
-    console.error('Error creating public directory:', err);
-    return res.status(500).json({ error: 'Failed to create public directory' });
+    console.error('Error accessing /tmp directory:', err);
+    return res.status(500).json({ error: 'Server configuration error', details: err.message });
   }
 
-  try{
+  try {
     const ffmpeg = spawn('ffmpeg', [
      '-f', 'lavfi',
      '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
@@ -65,16 +68,29 @@ app.post('/api/generate-video', async (req, res) => {
       ffmpegLogs += `FFmpeg error: ${err.message}\n`;
     });
   
-    ffmpeg.on('close', (code) => {
+    ffmpeg.on('close', async (code) => {
       console.log(`FFmpeg process closed with code ${code}`);
       if (code === 0) {
-        res.json({ videoUrl: `/tmp/${outputFileName}` });
+        try {
+          await fs.access(outputPath, fs.constants.F_OK);
+          console.log(`File successfully created: ${outputPath}`);
+          const stats = await fs.stat(outputPath);
+          console.log(`File size: ${stats.size} bytes`);
+          res.json({ videoUrl: `/tmp/${outputFileName}` });
+        } catch (err) {
+          console.error('Error verifying output file:', err);
+          res.status(500).json({ 
+            error: 'Error verifying video file', 
+            logs: ffmpegLogs,
+            details: err.message
+          });
+        }
       } else {
         console.error('FFmpeg logs:', ffmpegLogs);
         res.status(500).json({ 
           error: 'Error generating video', 
           logs: ffmpegLogs,
-          details: `Failed to create file: ${outputPath}. Please check directory permissions and FFmpeg installation.`
+          details: `FFmpeg process exited with code ${code}`
         });
       }
     });
@@ -90,21 +106,22 @@ cron.schedule('*/5 * * * *', async () => {  // Runs every 5 minutes
   const publicDir = '/tmp';
   
   try {
-    await fs.mkdir(publicDir, { recursive: true });
-
     const files = await fs.readdir(publicDir);
     for (const file of files) {
-      const filePath = path.join(publicDir, file);
-      const stats = await fs.stat(filePath);
-      
-      if (stats.isFile() && file.startsWith('video_')) {
-        const metadata = await getVideoMetadata(filePath);
-        if (metadata && metadata?.comment) {
-          const expiryDate = new Date(metadata.comment);
-          if (expiryDate < new Date()) {
-            await fs.unlink(filePath);
-            console.log(`Deleted expired video: ${file}`);
+      if (file.startsWith('video_')) {
+        const filePath = path.join(publicDir, file);
+        try {
+          const stats = await fs.stat(filePath);
+          const metadata = await getVideoMetadata(filePath);
+          if (metadata && metadata?.comment) {
+            const expiryDate = new Date(metadata.comment);
+            if (expiryDate < new Date()) {
+              await fs.unlink(filePath);
+              console.log(`Deleted expired video: ${file}`);
+            }
           }
+        } catch (err) {
+          console.error(`Error processing file ${file}:`, err);
         }
       }
     }
