@@ -22,7 +22,7 @@ app.get("/", async(req, res) => {
 app.post('/api/generate-video', async (req, res) => {
   console.log("API hit");
   
-  const { width, height, duration, format, audioEnabled = true } = req.body;
+  const { width, height, duration, format, audioEnabled } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
   const outputPath = path.join('/tmp', outputFileName);
 
