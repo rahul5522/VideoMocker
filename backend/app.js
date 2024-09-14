@@ -41,7 +41,7 @@ app.post('/api/generate-video', async (req, res) => {
     const ffmpeg = spawn('ffmpeg', [
       '-y',  // Overwrite output file if it exists
       '-f', 'lavfi',
-      '-i', `color=c=blue:s=${width}x${height}:d=${duration}`,
+      '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
       // '-i', `sine=frequency=440:duration=${duration}`,
       '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`,
       '-t', duration,
