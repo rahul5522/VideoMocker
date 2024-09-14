@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/tmp', express.static(path.join(__dirname, 'tmp')));
+app.use('/tmp', express.static('/tmp'));
 
 app.get("/", async(req, res) => {
   console.log("Working");
@@ -25,7 +25,7 @@ app.post('/api/generate-video', async (req, res) => {
   
   const { width, height, duration, format } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
-  const publicDir = path.join(__dirname, 'tmp');
+  const publicDir = '/tmp';
   const outputPath = path.join(publicDir, outputFileName);
 
   try {
@@ -46,7 +46,7 @@ app.post('/api/generate-video', async (req, res) => {
      '-shortest',
      '-metadata', `comment=${moment().add(1, 'h').toISOString()}`,
      outputPath
-  ]);
+    ]);
   
     let ffmpegLogs = '';
   
@@ -58,6 +58,11 @@ app.post('/api/generate-video', async (req, res) => {
     ffmpeg.stderr.on('data', (data) => {
       console.error(`FFmpeg stderr: ${data}`);
       ffmpegLogs += data;
+    });
+
+    ffmpeg.on('error', (err) => {
+      console.error('FFmpeg error:', err);
+      ffmpegLogs += `FFmpeg error: ${err.message}\n`;
     });
   
     ffmpeg.on('close', (code) => {
@@ -75,13 +80,14 @@ app.post('/api/generate-video', async (req, res) => {
     });
   } catch(err) {
     console.log("Error occurred", err);
+    res.status(500).json({ error: 'Internal server error', message: err.message });
   }
 });
 
 // Cron job to delete expired videos
-cron.schedule('*/5 * * * *', async () => {  // Runs every hour
+cron.schedule('*/5 * * * *', async () => {  // Runs every 5 minutes
   console.log('Running cron job to delete expired videos');
-  const publicDir = path.join(__dirname, 'tmp');
+  const publicDir = '/tmp';
   
   try {
     await fs.mkdir(publicDir, { recursive: true });
