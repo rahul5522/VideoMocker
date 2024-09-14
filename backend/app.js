@@ -41,7 +41,7 @@ app.post('/api/generate-video', async (req, res) => {
       '-y',  // Overwrite output file if it exists
       '-f', 'lavfi',
       '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
-      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`
+      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`
     ];
 
     if (audioEnabled) {
