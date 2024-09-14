@@ -13,6 +13,10 @@ app.use(express.json());
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
+app.get("/", async(req, res) => {
+  console.log("Working");
+});
+
 app.post('/api/generate-video', async (req, res) => {
   console.log("API hit");
   
