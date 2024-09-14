@@ -30,7 +30,6 @@ app.post('/api/generate-video', async (req, res) => {
   console.log(`Attempting to generate video: ${outputPath}`);
 
   try {
-    // Check if /tmp directory exists and is writable
     await fs.access('/tmp', fs.constants.W_OK);
     console.log('/tmp directory is writable');
   } catch (err) {
@@ -40,15 +39,15 @@ app.post('/api/generate-video', async (req, res) => {
 
   try {
     const ffmpeg = spawn('ffmpeg', [
-     '-f', 'lavfi',
-     '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
-     '-f', 'lavfi',
-     '-i', `sine=frequency=440:duration=${duration}`,
-     '-vf', `drawtext=fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width} x ${height} PX'`,
-     '-t', duration,
-     '-shortest',
-     '-metadata', `comment=${moment().add(1, 'h').toISOString()}`,
-     outputPath
+      '-y',  // Overwrite output file if it exists
+      '-f', 'lavfi',
+      '-i', `color=c=blue:s=${width}x${height}:d=${duration}`,
+      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`,
+      '-t', duration,
+      '-c:v', 'libx264',
+      '-preset', 'ultrafast',
+      '-pix_fmt', 'yuv420p',
+      outputPath
     ]);
   
     let ffmpegLogs = '';
@@ -101,24 +100,23 @@ app.post('/api/generate-video', async (req, res) => {
 });
 
 // Cron job to delete expired videos
-cron.schedule('*/5 * * * *', async () => {  // Runs every 5 minutes
+cron.schedule('*/5 * * * *', async () => {
   console.log('Running cron job to delete expired videos');
   const publicDir = '/tmp';
   
   try {
     const files = await fs.readdir(publicDir);
+    console.log(`Found ${files.length} files in ${publicDir}`);
     for (const file of files) {
       if (file.startsWith('video_')) {
         const filePath = path.join(publicDir, file);
         try {
           const stats = await fs.stat(filePath);
-          const metadata = await getVideoMetadata(filePath);
-          if (metadata && metadata?.comment) {
-            const expiryDate = new Date(metadata.comment);
-            if (expiryDate < new Date()) {
-              await fs.unlink(filePath);
-              console.log(`Deleted expired video: ${file}`);
-            }
+          console.log(`Processing file: ${file}, size: ${stats.size} bytes, created: ${stats.birthtime}`);
+          // For simplicity, let's delete files older than 1 hour
+          if (Date.now() - stats.birthtime.getTime() > 60 * 60 * 1000) {
+            await fs.unlink(filePath);
+            console.log(`Deleted expired video: ${file}`);
           }
         } catch (err) {
           console.error(`Error processing file ${file}:`, err);
@@ -130,34 +128,5 @@ cron.schedule('*/5 * * * *', async () => {  // Runs every 5 minutes
   }
 });
 
-async function getVideoMetadata(filePath) {
-  return new Promise((resolve, reject) => {
-    const ffprobe = spawn('ffprobe', [
-      '-v', 'quiet',
-      '-print_format', 'json',
-      '-show_format',
-      filePath
-    ]);
-
-    let output = '';
-    ffprobe.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    ffprobe.on('close', (code) => {
-      if (code === 0) {
-        try {
-          const metadata = JSON.parse(output);
-          resolve(metadata.format.tags);
-        } catch (err) {
-          reject(err);
-        }
-      } else {
-        reject(new Error(`ffprobe process exited with code ${code}`));
-      }
-    });
-  });
-}
-
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;  // Changed to 10000 as per Render's detection
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
