@@ -40,32 +40,39 @@ app.post('/api/generate-video', async (req, res) => {
     let ffmpegArgs = [
       '-y',  // Overwrite output file if it exists
       '-f', 'lavfi',
-      '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
-      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`
+      '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`, // Video input
     ];
-
+  
     if (audioEnabled) {
       // Add audio input
       ffmpegArgs.push('-f', 'lavfi', '-i', `sine=frequency=1000:duration=${duration}`);
-      // Map both video and audio to output
+    }
+  
+    // Apply video filter (drawtext) to the first input (video)
+    ffmpegArgs.push(
+      '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=black:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`
+    );
+  
+    // Map video and audio streams correctly
+    if (audioEnabled) {
       ffmpegArgs.push('-map', '0:v', '-map', '1:a');
     }
-
-    ffmpegArgs = [
-      ...ffmpegArgs,
+  
+    // Set the duration, codecs, and output format
+    ffmpegArgs.push(
       '-t', duration,
       '-c:v', 'libx264',
       '-preset', 'ultrafast',
       '-pix_fmt', 'yuv420p'
-    ];
-
+    );
+  
     if (audioEnabled) {
-      // ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k');
-      ffmpegArgs.push('-c:a', 'libmp3lame', '-b:a', '192k');
+      ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k');
     }
-
+  
+    // Specify output path
     ffmpegArgs.push(outputPath);
-
+  
     const ffmpeg = spawn('ffmpeg', ffmpegArgs);
   
     let ffmpegLogs = '';
