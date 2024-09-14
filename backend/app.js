@@ -23,7 +23,7 @@ app.get("/", async(req, res) => {
 app.post('/api/generate-video', async (req, res) => {
   console.log("API hit");
   
-  const { width, height, duration, format } = req.body;
+  const { width, height, duration, format, audioEnabled = true } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
   const outputPath = path.join('/tmp', outputFileName);
 
@@ -38,18 +38,31 @@ app.post('/api/generate-video', async (req, res) => {
   }
 
   try {
-    const ffmpeg = spawn('ffmpeg', [
+    let ffmpegArgs = [
       '-y',  // Overwrite output file if it exists
       '-f', 'lavfi',
-      '-i', `color=c=0xD3D3D3:s=${width}x${height}:d=${duration}`,
-      // '-i', `sine=frequency=440:duration=${duration}`,
+      '-i', `color=c=blue:s=${width}x${height}:d=${duration}`,
       '-vf', `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=60:fontcolor=white:x=(w-tw)/2:y=(h-th)/2:text='${width}x${height}'`,
       '-t', duration,
       '-c:v', 'libx264',
       '-preset', 'ultrafast',
-      '-pix_fmt', 'yuv420p',
-      outputPath
-    ]);
+      '-pix_fmt', 'yuv420p'
+    ];
+
+    if (audioEnabled) {
+      // Generate a sine wave audio
+      ffmpegArgs = [
+        ...ffmpegArgs,
+        '-f', 'lavfi',
+        '-i', `sine=frequency=1000:duration=${duration}`,
+        '-c:a', 'aac',
+        '-b:a', '192k'
+      ];
+    }
+
+    ffmpegArgs.push(outputPath);
+
+    const ffmpeg = spawn('ffmpeg', ffmpegArgs);
   
     let ffmpegLogs = '';
   
@@ -129,5 +142,5 @@ cron.schedule('*/5 * * * *', async () => {
   }
 });
 
-const PORT = process.env.PORT || 10000;  // Changed to 10000 as per Render's detection
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
