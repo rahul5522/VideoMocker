@@ -31,6 +31,7 @@ const VideoGeneratorForm = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const { theme } = useTheme();
 
   const popularDimensions = [
@@ -69,16 +70,16 @@ const VideoGeneratorForm = () => {
     setError("");
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:3001/api/generate-video", {
+      const response = await fetch("https://videomocker.onrender.com/api/generate-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ width, height, duration, format }),
+        body: JSON.stringify({ width, height, duration, format, audioEnabled }),
       });
       if (!response.ok) {
         throw new Error("Failed to generate video");
       }
       const data = await response.json();
-      setVideoUrl(`http://localhost:3001${data.videoUrl}`);
+      setVideoUrl(`https://videomocker.onrender.com${data.videoUrl}`);
       setLoading(false);
     } catch (error) {
       console.error("Error generating video:", error);
@@ -157,6 +158,10 @@ const VideoGeneratorForm = () => {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex items-center space-x-2">
+          <input type="checkbox" checked={audioEnabled} onChange={() => setAudioEnabled((prev) => !prev)} />
+          <Label>Enable Audio</Label>
+        </div>
         <Button type="submit" className="w-full" disabled={loading}>
           <Video className="mr-2 h-4 w-4" /> Generate Video
         </Button>
@@ -184,7 +189,7 @@ const VideoGeneratorForm = () => {
     <div className="container mx-auto p-4 max-w-lg">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Video Generator</CardTitle>
+          <CardTitle className="text-2xl font-bold">Vid-Mocker</CardTitle>
           <CardDescription>
             Create custom placeholder videos for your demos
           </CardDescription>
