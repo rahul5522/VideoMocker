@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/tmp', express.static(path.join(__dirname, 'tmp')));
 
 app.get("/", async(req, res) => {
   console.log("Working");
@@ -25,7 +25,7 @@ app.post('/api/generate-video', async (req, res) => {
   
   const { width, height, duration, format } = req.body;
   const outputFileName = `video_${width}x${height}_d${duration}s${Date.now()}.${format}`;
-  const publicDir = path.join(__dirname, 'public');
+  const publicDir = path.join(__dirname, 'tmp');
   const outputPath = path.join(publicDir, outputFileName);
 
   try {
@@ -63,7 +63,7 @@ app.post('/api/generate-video', async (req, res) => {
     ffmpeg.on('close', (code) => {
       console.log(`FFmpeg process closed with code ${code}`);
       if (code === 0) {
-        res.json({ videoUrl: `/public/${outputFileName}` });
+        res.json({ videoUrl: `/tmp/${outputFileName}` });
       } else {
         console.error('FFmpeg logs:', ffmpegLogs);
         res.status(500).json({ 
@@ -81,7 +81,7 @@ app.post('/api/generate-video', async (req, res) => {
 // Cron job to delete expired videos
 cron.schedule('*/5 * * * *', async () => {  // Runs every hour
   console.log('Running cron job to delete expired videos');
-  const publicDir = path.join(__dirname, 'public');
+  const publicDir = path.join(__dirname, 'tmp');
   
   try {
     await fs.mkdir(publicDir, { recursive: true });
